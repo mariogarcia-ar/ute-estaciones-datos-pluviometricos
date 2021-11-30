@@ -147,7 +147,10 @@ def drowpdown_select_byvalue(el_id, option_value, driver):
         option = driver.find_element(By.XPATH, xpath)
         option.click()
         wait = WebDriverWait(driver, 20)
-        wait.until(EC.element_to_be_clickable((By.ID, el_id)))  
+        try:
+            wait.until(EC.element_to_be_clickable((By.ID, el_id)))  
+        except:
+            print("An exception occurred")
         time.sleep(np.random.randint(3,5))  
 
 
