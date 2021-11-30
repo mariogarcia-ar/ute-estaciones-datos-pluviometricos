@@ -1,37 +1,36 @@
-## Welcome to GitHub Pages
+# Estaciones Hidrometeorológicas obtener Datos Pluviometricos
+Automatizacion de la recolección de datos pluviométricos desde la pagina web de UTE [https://apps.ute.com.uy/SgePublico/BajadasGE.aspx](https://apps.ute.com.uy/SgePublico/BajadasGE.aspx)
 
-You can use the [editor on GitHub](https://github.com/mariogarcia-ar/ute-estaciones-datos-pluviometricos/edit/gh-pages/index.md) to maintain and preview the content for your website in Markdown files.
 
-Whenever you commit to this repository, GitHub Pages will run [Jekyll](https://jekyllrb.com/) to rebuild the pages in your site, from the content in your Markdown files.
 
-### Markdown
+Gráficamente:
 
-Markdown is a lightweight and easy-to-use syntax for styling your writing. It includes conventions for
+![ValidacionProductosSatelitales](assets/img/ValidacionProductosSatelitales-Page-3.jpg "Diagrama del proceso.")
 
-```markdown
-Syntax highlighted code block
+Tutorial en Youtube https://youtu.be/pnRjagjO13c :
 
-# Header 1
-## Header 2
-### Header 3
+[![Tutorial Youtube https://youtu.be/pnRjagjO13c ](https://img.youtube.com/vi/pnRjagjO13c/0.jpg)](https://www.youtube.com/watch?v=pnRjagjO13c)
 
-- Bulleted
-- List
 
-1. Numbered
-2. List
 
-**Bold** and _Italic_ and `Code` text
+## Instalación de dependencias
+Instalamos las librerías dependientes desde requirements.txt
 
-[Link](url) and ![Image](src)
+```bash
+pip3 install -r requirements.txt
 ```
 
-For more details see [Basic writing and formatting syntax](https://docs.github.com/en/github/writing-on-github/getting-started-with-writing-and-formatting-on-github/basic-writing-and-formatting-syntax).
+## Ejecutar
+Al ejecutar el comando
 
-### Jekyll Themes
+```bash
+python run.py
+```
+Se procederá a:
+- crear la estructura de directorios
+- descargar los archivos con informacion raw en la carpeta  tmp/download/data_nivel_aporte
+- exportar los archivos raw a formato csv en la carpeta data/data_nivel_aporte
+- crear la estructura de cuenca, subcuenca, estacion y paso en el archivo data/ute_cuencas_subcuencas_estaciones_pasos.json
 
-Your Pages site will use the layout and styles from the Jekyll theme you have selected in your [repository settings](https://github.com/mariogarcia-ar/ute-estaciones-datos-pluviometricos/settings/pages). The name of this theme is saved in the Jekyll `_config.yml` configuration file.
 
-### Support or Contact
-
-Having trouble with Pages? Check out our [documentation](https://docs.github.com/categories/github-pages-basics/) or [contact support](https://support.github.com/contact) and we’ll help you sort it out.
+ 
