@@ -7,10 +7,6 @@ Gráficamente:
 
 ![ValidacionProductosSatelitales](assets/img/ValidacionProductosSatelitales-Page-3.jpg "Diagrama del proceso.")
 
-Tutorial en Youtube https://youtu.be/pnRjagjO13c :
-
-[![Tutorial Youtube https://youtu.be/pnRjagjO13c ](https://img.youtube.com/vi/pnRjagjO13c/0.jpg)](https://www.youtube.com/watch?v=pnRjagjO13c)
-
 
 
 ## Instalación de dependencias
