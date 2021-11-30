@@ -64,7 +64,7 @@ def process(row):
 
             for estacion_id, estacion  in sorted(estaciones['estaciones'].items()):
                 time.sleep(np.random.randint(0,1))
-                # fx.drowpdown_select_byvalue(el_id="ctl00_ContentPlaceHolder1_cboEstacion", option_value=estacion_id, driver=driver)
+                fx.drowpdown_select_byvalue(el_id="ctl00_ContentPlaceHolder1_cboEstacion", option_value=estacion_id, driver=driver)
 
                 pasos = fx.getOptionsFromSelect(driver, 'ctl00_ContentPlaceHolder1_cboPasos',"pasos","paso")
                 estacion['__pasos'] =  pasos['pasos']
