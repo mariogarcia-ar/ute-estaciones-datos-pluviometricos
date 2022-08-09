@@ -1,19 +1,23 @@
 import requests
-from bs4 import BeautifulSoup
+# from bs4 import BeautifulSoup
 
 import os
 import json 
 import pandas as pd
 import numpy as np 
 
-import srtm
-import zipfile
-import shutil
+# import srtm
+# import zipfile
+# import shutil
 
 import glob
 from shutil import copyfile
-import sys 
+# import sys 
 import time
+
+from datetime import datetime
+# from datetime import timedelta
+from shutil import copyfile
 
 # Selenium
 from selenium import webdriver
@@ -25,14 +29,15 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
 from selenium.webdriver.support import expected_conditions as EC
 
+import chromedriver_binary
 
 # -----------------------------------------------------------------------------
 def init():
     global dir_root, dir_data, dir_tmp, dir_report, dir_download
     dir_root = os.path.abspath(os.getcwd())
-    createStructure()
+    create_structure()
 
-def createStructure():
+def create_structure():
     globals()["dir_data"] = globals()["dir_root"]+'/data/'
     os.makedirs(globals()["dir_data"], exist_ok = True)
 
@@ -53,7 +58,21 @@ def file_get_contents(filename, mode="r"):
         return f_in.read()      
 
 # -----------------------------------------------------------------------------
-def exportToCsv(data, file_path):
+def my_log(*arguments):
+    dt = datetime.now()
+
+    print(dt, *arguments)
+
+    log_file = globals()["dir_tmp"]+'/process.log'
+    with open(log_file, 'a') as f:
+        print(dt, *arguments, file=f)
+            
+# -----------------------------------------------------------------------------            
+def my_sleep(min_sec, max_sec=60):
+    time.sleep(np.random.randint(min_sec, max_sec))     
+
+# -----------------------------------------------------------------------------
+def export_to_csv(data, file_path):
     ds = pd.DataFrame(data)
     ds.to_csv(file_path, index = False, header = None)
 
@@ -66,26 +85,22 @@ def download(url):
     return file_path
 
 def download_from_driver(driver):    
-    print("Download File .....")
-    time.sleep(np.random.randint(2,6))
+    # my_log("Download File .....")
+    my_sleep(2,6)
     driver.find_element(By.ID, "ctl00_ContentPlaceHolder1_cmdDescargar").click()  
-    # TODO: REVISAR EN LA CARPTA DE DESCARGA SI HAY UN ARCHIVO MAS
-    time.sleep(np.random.randint(5,15))  
-
-
-
+    # Una vez bajado el archivo da entre 5 a 15 seg para que el archivo se baje y podamos procesarlo
+    my_sleep(5,15)
 
 # -----------------------------------------------------------------------------
-
-def getDriver(url, dir_download):
+def get_driver(url, dir_download):
     # dir_download = globals()["dir_download"]
 
     chromeOptions = webdriver.ChromeOptions()
     prefs = {"download.default_directory" : dir_download}
     chromeOptions.add_experimental_option("prefs",prefs)
-    chromedriver = "chromedriver"
+    # chromedriver = "chromedriver"
 
-    driver = webdriver.Chrome(executable_path=chromedriver, chrome_options=chromeOptions)
+    driver = webdriver.Chrome(chrome_options=chromeOptions)
 
     # Open the main page
     driver.get(url)    
@@ -93,11 +108,10 @@ def getDriver(url, dir_download):
 
 
 # -----------------------------------------------------------------------------
-
-def getOptionsFromSelect(driver, el_id, types, type):
-    xpath = '//*[@id="'+str(el_id)+'"]'
-    select_box = driver.find_element(By.XPATH, xpath)
-    options = [x for x in select_box.find_elements_by_tag_name("option")]
+# $x('//*[@id="ctl00_ContentPlaceHolder1_cboCuenca"]')
+def get_options_from_select(driver, el_id, types, type):
+    xpath = '//*[@id="'+str(el_id)+'"]/option'
+    options = driver.find_elements(By.XPATH, xpath)
 
     eles = {}
     for element in options:
@@ -108,38 +122,35 @@ def getOptionsFromSelect(driver, el_id, types, type):
 
 
 # -----------------------------------------------------------------------------
-def showLastFileCreated(dir_path):
+def show_last_file_created(dir_path):
     dir = dir_path
     list_of_files = glob.glob(dir+'*') # * means all if need specific format then *.csv
     latest_file = max(list_of_files, key=os.path.getctime)
-    # print(latest_file)   
+    my_log(" Last File created ", latest_file)   
     return latest_file   
 
 
 
 # -----------------------------------------------------------------------------
-
-
-
 def drowpdown_select(el_id, option_value, driver):
     xpath = '//*[@id="'+str(el_id)+'"]'
-    # print('xpath', xpath)
+    # my_log('xpath', xpath)
     option = driver.find_element(By.XPATH, xpath)
     val_option = option.get_attribute('text')
 
     if( val_option != option_value):
         xpath = '//*[@id="'+str(el_id)+'"]/option[. ="'+str(option_value)+'"]'
-        # print('xpath', xpath)
+        # my_log('xpath', xpath)
         option = driver.find_element(By.XPATH, xpath)
         option.click()
         wait = WebDriverWait(driver, 20)
         wait.until(EC.element_to_be_clickable((By.ID, el_id)))   
-        time.sleep(np.random.randint(3,5))  
+        my_sleep(3,5)
 
 def drowpdown_select_byvalue(el_id, option_value, driver):
     xpath = '//*[@id="'+str(el_id)+'"]'
     option = driver.find_element(By.XPATH, xpath)
-    # print('xpath', xpath)
+    # my_log('xpath', xpath)
     val_option = option.get_attribute('value')
 
     if( val_option != option_value):
@@ -147,19 +158,14 @@ def drowpdown_select_byvalue(el_id, option_value, driver):
         option = driver.find_element(By.XPATH, xpath)
         option.click()
         wait = WebDriverWait(driver, 20)
-        try:
-            wait.until(EC.element_to_be_clickable((By.ID, el_id)))  
-        except:
-            print("An exception occurred")
-        time.sleep(np.random.randint(3,5))  
+        wait.until(EC.element_to_be_clickable((By.ID, el_id)))  
+        my_sleep(3,5) 
 
 
 
 
 # -----------------------------------------------------------------------------
-
-def setTimeFilter(params):
-    # print('setTimeFilter', params)
+def set_time_filter(params):
     driver = params['driver']      
     # ------------------------------------------------------------
     # Filter To Date
@@ -181,21 +187,97 @@ def setTimeFilter(params):
     drowpdown_select(el_id="ctl00_ContentPlaceHolder1_cboMesIni", option_value=cboMesIni, driver=driver)
 
 
-
-
-
-
 # -----------------------------------------------------------------------------
-
-
-import json
-def exportJsonToFile(file, data):
+def export_json_to_file(file, data):
     with open(file, 'w', encoding='utf-8') as f:
         json.dump(data, f, ensure_ascii=False, indent=4)
 
-
-
 # -----------------------------------------------------------------------------
+def process(row, driver, dir_path_ute_csv, dir_path_ute_download):
+    # ['cuencas', 'subcuencas', 'estaciones', 'pasos']
+    cuencas = get_options_from_select(driver, "ctl00_ContentPlaceHolder1_cboCuenca","cuencas","cuenca")
+    for cuenca_id, cuenca  in sorted(cuencas['cuencas'].items()):
 
+        my_sleep(1,2)
+        drowpdown_select_byvalue(el_id="ctl00_ContentPlaceHolder1_cboCuenca", option_value=cuenca_id, driver=driver)
+
+        my_sleep(1,2)
+        subcuencas = get_options_from_select(driver, 'ctl00_ContentPlaceHolder1_cboSubcuenca',"subcuencas","subcuenca")
+        cuenca['__subcuencas'] = subcuencas['subcuencas'] 
+
+        for subcuenca_id, subcuenca  in sorted(subcuencas['subcuencas'].items()):
+            my_sleep(1,2)
+            drowpdown_select_byvalue(el_id="ctl00_ContentPlaceHolder1_cboSubcuenca", option_value=subcuenca_id, driver=driver)
+
+            my_sleep(1,2)
+            estaciones = get_options_from_select(driver, 'ctl00_ContentPlaceHolder1_cboEstacion',"estaciones","estacion")
+            subcuenca['__estaciones'] =   estaciones['estaciones']
+
+            for estacion_id, estacion  in sorted(estaciones['estaciones'].items()):
+                my_sleep(0,1)
+                drowpdown_select_byvalue(el_id="ctl00_ContentPlaceHolder1_cboEstacion", option_value=estacion_id, driver=driver)
+
+                pasos = get_options_from_select(driver, 'ctl00_ContentPlaceHolder1_cboPasos',"pasos","paso")
+                estacion['__pasos'] =  pasos['pasos']
+
+                for paso_id, paso  in sorted(pasos['pasos'].items()):
+                    my_sleep(1,2)
+                    drowpdown_select_byvalue(el_id="ctl00_ContentPlaceHolder1_cboPasos", option_value=paso_id, driver=driver)
+
+                    # my_log("\nEjecutando",paso, estacion, subcuenca, cuenca)
+
+                    dst_csv = dir_path_ute_csv+"/{}-{}-{}-{}-{}-{}-{}-{}.txt".format(
+                        row["cboAnioIni"],row["cboMesIni"],row["cboAnioFin"],row["cboMesFin"],
+                        cuenca_id, subcuenca_id, estacion_id, paso_id
+                    )
+                    dst_csv = dst_csv.replace('.txt','.csv')
+                    if os.path.exists(dst_csv):
+                        my_log('Downloaded', dst_csv)
+                        continue
+
+                    # ---------------------------------------------------------
+                    # Download
+                    # ---------------------------------------------------------
+                    my_log('Downloading file: ', dst_csv)
+                    download_from_driver(driver)
+                    src = show_last_file_created(dir_path_ute_download)
+                    # copyfile(src, dst)
+                   
+                    # ---------------------------------------------------------
+                    # Export to CSV
+                    # ---------------------------------------------------------
+                    export_raw_to_csv(src, dst_csv)
+
+
+                    # ---------------------------------------------------------    
+                    # partial save
+                    # ---------------------------------------------------------
+                    export_json_to_file(dir_path_ute_csv+"/partial_{}-{}-{}-{}-ute.json".format(
+                        row["cboAnioIni"],row["cboMesIni"],row["cboAnioFin"],row["cboMesFin"]
+                    ), cuencas)  
+            
+    # --------------------------------------------------------------------------
+    # Export Structure to Json File
+    # --------------------------------------------------------------------------
+    export_json_to_file(dir_path_ute_csv+"/{}-{}-{}-{}-ute.json".format(
+                        row["cboAnioIni"],row["cboMesIni"],row["cboAnioFin"],row["cboMesFin"]
+                    ), cuencas)      
+
+
+def export_raw_to_csv(file_src, file_to):
+    dateparse = lambda x: datetime.strptime(x, '%d/%m/%Y') # %Y-%m-%d %H:%M:%S
+    col_names = ['date','hour','cuenca','subcuenca','x1','estacion','nivel','x2','x3']
+
+    df = pd.read_csv(file_src, encoding='ISO-8859-1', 
+                names=col_names,sep=";",skiprows=2,
+                parse_dates=["date"],date_parser=dateparse)
+    df['dt'] = df['date'].astype(str) +' '+ df['hour'].apply(str).str[:-2] +':00:00' # pd.DateOffset(hours=df['hour']/100) #timedelta(2)
+    df['dt'] = pd.to_datetime(df['dt'])
+
+    df_obj = df.select_dtypes(['object'])
+    df[df_obj.columns] = df_obj.apply(lambda x: x.str.strip())
+
+    df.drop(['date','hour' ], inplace=True, axis=1)   
+    df.to_csv(file_to, index = False) 
 
 
