@@ -40,8 +40,8 @@ def check_sync(dst_csv):
         global_sync = True
     else: 
         global_sync = os.path.basename(file_last) == os.path.basename(dst_csv)
+    # print('-->>>>check_sync',global_sync, 'file_last', file_last,  os.path.basename(file_last) , os.path.basename(dst_csv) )
     return file_last
-    # print('check_sync',global_sync ,  os.path.basename(file_last) , os.path.basename(dst_csv) )
 
 
 
@@ -69,7 +69,7 @@ def check_last_state(el='cuenca', val='GTERRA', year=2022):
 
     # el ultimo procesado fue del 2006 y si estamos en 2007 es un nuevo periodo, 
     if year > int( parts[ 2 ]): 
-        global_sync == True
+        global_sync = True
         return True 
 
     return parts[ select_id[el] ] == val
@@ -127,6 +127,8 @@ def download(url):
     return file_path
 
 def download_from_driver(driver):    
+    global global_sync
+    global_sync = True    
     # my_log("Download File .....")
     my_sleep(2,6)
     driver.find_element(By.ID, "ctl00_ContentPlaceHolder1_cmdDescargar").click()  
