@@ -31,6 +31,38 @@ from selenium.webdriver.support import expected_conditions as EC
 
 import chromedriver_binary
 
+global_sync = False 
+
+def check_sync(dst_csv):
+    global global_sync
+    file_last = show_last_file_created('./data/data_pluviometricos/', pattern="*.csv")
+    global_sync = os.path.basename(file_last) == os.path.basename(dst_csv)
+    # print('check_sync',global_sync ,  os.path.basename(file_last) , os.path.basename(dst_csv) )
+
+
+
+def check_last_state(el='cuenca', val='GTERRA'):
+    global global_sync
+    # una vez sincronizado no realizar mas la validacion
+    if global_sync == True:
+        return True 
+
+    # 2000-Junio-2000-Diciembre-GTERRA-STACUA-PCSAUCE-BORRA.csv.txt
+    file_last = show_last_file_created('./data/data_pluviometricos/', pattern="*.txt").replace('.csv.txt','')
+    
+    # en la primer ejecucion no hay archivos
+    if file_last == '':
+        return True 
+
+    parts =  file_last.split('-')          
+    select_id = {
+        'cuenca': 4,
+        'subcuenca': 5,
+        'estacion': 6,
+        'paso': 7,
+    }
+    # print('validando ', el, 'global_sync',global_sync,  parts[ select_id[el] ],  val)
+    return parts[ select_id[el] ] == val
 # -----------------------------------------------------------------------------
 def init():
     global dir_root, dir_data, dir_tmp, dir_report, dir_download
@@ -67,9 +99,9 @@ def my_log(*arguments):
     with open(log_file, 'a') as f:
         print(dt, *arguments, file=f)
             
-# -----------------------------------------------------------------------------            
+# -----------------------------------------------------------------------------
 def my_sleep(min_sec, max_sec=60):
-    time.sleep(np.random.randint(min_sec, max_sec))     
+    time.sleep(np.random.randint(min_sec, max_sec))
 
 # -----------------------------------------------------------------------------
 def export_to_csv(data, file_path):
@@ -122,10 +154,12 @@ def get_options_from_select(driver, el_id, types, type):
 
 
 # -----------------------------------------------------------------------------
-def show_last_file_created(dir_path):
+def show_last_file_created(dir_path, pattern="*"):
     dir = dir_path
-    list_of_files = glob.glob(dir+'*') # * means all if need specific format then *.csv
-    latest_file = max(list_of_files, key=os.path.getctime)
+    list_of_files = glob.glob(dir+pattern) # * means all if need specific format then *.csv
+    latest_file = ''
+    if len(list_of_files) > 0  :
+        latest_file = max(list_of_files, key=os.path.getctime)
     my_log(" Last File created ", latest_file)   
     return latest_file   
 
@@ -157,8 +191,9 @@ def drowpdown_select_byvalue(el_id, option_value, driver):
         xpath = '//*[@id="'+str(el_id)+'"]/option[@value="'+str(option_value)+'"]'
         option = driver.find_element(By.XPATH, xpath)
         option.click()
-        wait = WebDriverWait(driver, 20)
-        wait.until(EC.element_to_be_clickable((By.ID, el_id)))  
+        my_sleep(3,5)
+        # wait = WebDriverWait(driver, 20)
+        # wait.until(EC.element_to_be_clickable((By.ID, el_id)))
         my_sleep(3,5) 
 
 
@@ -166,6 +201,9 @@ def drowpdown_select_byvalue(el_id, option_value, driver):
 
 # -----------------------------------------------------------------------------
 def set_time_filter(params):
+    global global_sync
+    global_sync = False 
+
     driver = params['driver']      
     # ------------------------------------------------------------
     # Filter To Date
@@ -197,6 +235,8 @@ def process(row, driver, dir_path_ute_csv, dir_path_ute_download):
     # ['cuencas', 'subcuencas', 'estaciones', 'pasos']
     cuencas = get_options_from_select(driver, "ctl00_ContentPlaceHolder1_cboCuenca","cuencas","cuenca")
     for cuenca_id, cuenca  in sorted(cuencas['cuencas'].items()):
+        if not check_last_state('cuenca', cuenca_id):
+            continue
 
         my_sleep(1,2)
         drowpdown_select_byvalue(el_id="ctl00_ContentPlaceHolder1_cboCuenca", option_value=cuenca_id, driver=driver)
@@ -206,6 +246,9 @@ def process(row, driver, dir_path_ute_csv, dir_path_ute_download):
         cuenca['__subcuencas'] = subcuencas['subcuencas'] 
 
         for subcuenca_id, subcuenca  in sorted(subcuencas['subcuencas'].items()):
+            if not check_last_state('subcuenca', subcuenca_id):
+                continue
+
             my_sleep(1,2)
             drowpdown_select_byvalue(el_id="ctl00_ContentPlaceHolder1_cboSubcuenca", option_value=subcuenca_id, driver=driver)
 
@@ -214,6 +257,9 @@ def process(row, driver, dir_path_ute_csv, dir_path_ute_download):
             subcuenca['__estaciones'] =   estaciones['estaciones']
 
             for estacion_id, estacion  in sorted(estaciones['estaciones'].items()):
+                if not check_last_state('estacion', estacion_id):
+                    continue    
+
                 my_sleep(0,1)
                 drowpdown_select_byvalue(el_id="ctl00_ContentPlaceHolder1_cboEstacion", option_value=estacion_id, driver=driver)
 
@@ -221,11 +267,13 @@ def process(row, driver, dir_path_ute_csv, dir_path_ute_download):
                 estacion['__pasos'] =  pasos['pasos']
 
                 for paso_id, paso  in sorted(pasos['pasos'].items()):
+                    if not check_last_state('paso', paso_id):
+                        continue     
+
                     my_sleep(1,2)
                     drowpdown_select_byvalue(el_id="ctl00_ContentPlaceHolder1_cboPasos", option_value=paso_id, driver=driver)
 
-                    # my_log("\nEjecutando",paso, estacion, subcuenca, cuenca)
-
+                    # my_log("\n----->>>>>>>>Ejecutando",paso_id, estacion_id, subcuenca_id, cuenca_id)
                     dst_csv = dir_path_ute_csv+"/{}-{}-{}-{}-{}-{}-{}-{}.txt".format(
                         row["cboAnioIni"],row["cboMesIni"],row["cboAnioFin"],row["cboMesFin"],
                         cuenca_id, subcuenca_id, estacion_id, paso_id
@@ -233,15 +281,15 @@ def process(row, driver, dir_path_ute_csv, dir_path_ute_download):
                     dst_csv = dst_csv.replace('.txt','.csv')
                     if os.path.exists(dst_csv):
                         my_log('Downloaded', dst_csv)
-                        continue
-
+                        check_sync(dst_csv)
+                        continue	
                     # ---------------------------------------------------------
                     # Download
                     # ---------------------------------------------------------
                     my_log('Downloading file: ', dst_csv)
                     download_from_driver(driver)
                     src = show_last_file_created(dir_path_ute_download)
-                    # copyfile(src, dst)
+                    copyfile(src, dst_csv+'.txt')
                    
                     # ---------------------------------------------------------
                     # Export to CSV
