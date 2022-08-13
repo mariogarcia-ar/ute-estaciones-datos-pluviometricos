@@ -36,12 +36,16 @@ global_sync = False
 def check_sync(dst_csv):
     global global_sync
     file_last = show_last_file_created('./data/data_pluviometricos/', pattern="*.csv")
-    global_sync = os.path.basename(file_last) == os.path.basename(dst_csv)
+    if file_last == '':
+        global_sync = True
+    else: 
+        global_sync = os.path.basename(file_last) == os.path.basename(dst_csv)
+    return file_last
     # print('check_sync',global_sync ,  os.path.basename(file_last) , os.path.basename(dst_csv) )
 
 
 
-def check_last_state(el='cuenca', val='GTERRA'):
+def check_last_state(el='cuenca', val='GTERRA', year=2022):
     global global_sync
     # una vez sincronizado no realizar mas la validacion
     if global_sync == True:
@@ -61,7 +65,13 @@ def check_last_state(el='cuenca', val='GTERRA'):
         'estacion': 6,
         'paso': 7,
     }
-    # print('validando ', el, 'global_sync',global_sync,  parts[ select_id[el] ],  val)
+    # print('validando ', el, 'global_sync',global_sync,  parts[ select_id[el] ],  val, parts)
+
+    # el ultimo procesado fue del 2006 y si estamos en 2007 es un nuevo periodo, 
+    if year > int( parts[ 2 ]): 
+        global_sync == True
+        return True 
+
     return parts[ select_id[el] ] == val
 # -----------------------------------------------------------------------------
 def init():
@@ -235,7 +245,7 @@ def process(row, driver, dir_path_ute_csv, dir_path_ute_download):
     # ['cuencas', 'subcuencas', 'estaciones', 'pasos']
     cuencas = get_options_from_select(driver, "ctl00_ContentPlaceHolder1_cboCuenca","cuencas","cuenca")
     for cuenca_id, cuenca  in sorted(cuencas['cuencas'].items()):
-        if not check_last_state('cuenca', cuenca_id):
+        if not check_last_state('cuenca', cuenca_id, row["cboAnioIni"]):
             continue
 
         my_sleep(1,2)
@@ -246,7 +256,7 @@ def process(row, driver, dir_path_ute_csv, dir_path_ute_download):
         cuenca['__subcuencas'] = subcuencas['subcuencas'] 
 
         for subcuenca_id, subcuenca  in sorted(subcuencas['subcuencas'].items()):
-            if not check_last_state('subcuenca', subcuenca_id):
+            if not check_last_state('subcuenca', subcuenca_id, row["cboAnioIni"]):
                 continue
 
             my_sleep(1,2)
@@ -257,7 +267,7 @@ def process(row, driver, dir_path_ute_csv, dir_path_ute_download):
             subcuenca['__estaciones'] =   estaciones['estaciones']
 
             for estacion_id, estacion  in sorted(estaciones['estaciones'].items()):
-                if not check_last_state('estacion', estacion_id):
+                if not check_last_state('estacion', estacion_id, row["cboAnioIni"]):
                     continue    
 
                 my_sleep(0,1)
@@ -267,7 +277,7 @@ def process(row, driver, dir_path_ute_csv, dir_path_ute_download):
                 estacion['__pasos'] =  pasos['pasos']
 
                 for paso_id, paso  in sorted(pasos['pasos'].items()):
-                    if not check_last_state('paso', paso_id):
+                    if not check_last_state('paso', paso_id, row["cboAnioIni"]):
                         continue     
 
                     my_sleep(1,2)
